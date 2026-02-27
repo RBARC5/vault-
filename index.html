@@ -23,6 +23,37 @@
     --border: rgba(255,255,255,0.06);
   }
 
+  /* Light mode overrides */
+  body.light {
+    --bg: #F5F2EC;
+    --surface: #FFFFFF;
+    --surface2: #EDE9E0;
+    --surface3: #E0DAD0;
+    --text: #1A1810;
+    --text-dim: #8A8278;
+    --border: rgba(0,0,0,0.08);
+    --profit: #2E8A55;
+  }
+
+  body.light #pin-screen {
+    background: var(--bg);
+  }
+
+  body.light #pin-screen::before {
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.12) 0%, transparent 70%);
+  }
+
+  body.light .pin-key {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  body.light .pin-key:hover {
+    background: var(--surface2);
+  }
+
+  body.light body::after { display: none; }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
@@ -188,24 +219,341 @@
     text-transform: uppercase;
   }
 
-  .lock-btn {
+  .header-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lock-btn, .refresh-btn {
     background: none;
     border: 1px solid var(--border);
     color: var(--text-dim);
     font-size: 11px;
-    letter-spacing: 2px;
-    padding: 7px 14px;
+    letter-spacing: 1px;
+    padding: 7px 12px;
     border-radius: 8px;
     cursor: pointer;
     font-family: 'DM Mono', monospace;
     text-transform: uppercase;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
 
-  .lock-btn:hover {
+  .lock-btn:hover, .refresh-btn:hover {
     border-color: var(--gold-dim);
     color: var(--gold);
   }
+
+  .refresh-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-style: normal;
+    transition: transform 0.3s;
+  }
+
+  .refresh-btn.spinning .refresh-icon {
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .countdown {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    padding: 7px 6px;
+    min-width: 42px;
+    text-align: center;
+  }
+
+  /* Theme toggle */
+  .theme-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  /* Share button */
+  .share-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .share-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  /* Market status bar */
+  .market-bar {
+    margin: 14px 24px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .market-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .market-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .market-dot.open {
+    background: var(--profit);
+    box-shadow: 0 0 8px rgba(76,175,122,0.6);
+    animation: marketPulse 2s ease-in-out infinite;
+  }
+
+  .market-dot.closed {
+    background: #e05252;
+    box-shadow: 0 0 8px rgba(224,82,82,0.4);
+  }
+
+  @keyframes marketPulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .market-status-text {
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
+
+  .market-status-text.open { color: var(--profit); }
+  .market-status-text.closed { color: #e05252; }
+
+  .market-session {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  .market-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .market-opens-in {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+
+  .market-countdown {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Share modal */
+  .share-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 600;
+    backdrop-filter: blur(4px);
+    padding: 24px;
+  }
+
+  .share-overlay.open { display: flex; }
+
+  .share-sheet {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    animation: fadeInUp 0.3s ease;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .share-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    color: var(--gold-light);
+  }
+
+  .share-sub {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  /* Snapshot card shown in share modal */
+  #snapshot-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .snap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .snap-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: var(--gold-light);
+  }
+
+  .snap-date {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .snap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  .snap-label { color: var(--text-dim); letter-spacing: 0.5px; }
+  .snap-val   { font-weight: 500; }
+  .snap-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  .snap-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 0;
+    font-size: 14px;
+  }
+
+  .snap-total-label { color: var(--text); letter-spacing: 1px; }
+  .snap-total-val   { font-size: 18px; font-weight: 500; color: var(--profit); }
+
+  .share-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .share-action-btn {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .share-action-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  .share-action-btn.primary {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg);
+    font-weight: 500;
+  }
+
+  .share-action-btn.primary:hover {
+    background: var(--gold-light);
+  }
+
+  .share-close {
+    width: 100%;
+    margin-top: 10px;
+    padding: 11px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .share-close:hover { color: var(--text); }
 
   /* ─── PRICE CARDS ─────────────────────────────────────── */
   .prices-section {
@@ -698,7 +1046,30 @@
 
   <div class="app-header">
     <div class="app-title">⚜️ Vault</div>
-    <button class="lock-btn" onclick="lockApp()">Lock</button>
+    <div class="header-btns">
+      <span class="countdown" id="countdown" title="Next price refresh">5:00</span>
+      <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh prices">
+        <i class="refresh-icon">↻</i> Refresh
+      </button>
+      <button class="share-btn" onclick="openShare()" title="Share / Export">📤</button>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
+      <button class="lock-btn" onclick="lockApp()">Lock</button>
+    </div>
+  </div>
+
+  <!-- Market Status Bar -->
+  <div class="market-bar" id="market-bar">
+    <div class="market-left">
+      <div class="market-dot" id="market-dot"></div>
+      <div>
+        <div class="market-status-text" id="market-status-text">Checking...</div>
+        <div class="market-session" id="market-session"></div>
+      </div>
+    </div>
+    <div class="market-right" id="market-right" style="display:none">
+      <div class="market-opens-in">Opens in</div>
+      <div class="market-countdown" id="market-countdown">--:--:--</div>
+    </div>
   </div>
 
   <!-- Price Cards -->
@@ -938,11 +1309,56 @@
   </div>
 </div>
 
+<!-- html2canvas for screenshot export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Share Modal -->
+<div class="share-overlay" id="share-overlay" onclick="closeShare(event)">
+  <div class="share-sheet">
+    <div class="share-title">Export Portfolio</div>
+    <div class="share-sub">Snapshot as of today</div>
+
+    <div id="snapshot-card">
+      <div class="snap-header">
+        <div class="snap-title">⚜️ Vault</div>
+        <div class="snap-date" id="snap-date"></div>
+      </div>
+      <div class="snap-row">
+        <span class="snap-label">🏅 Gold Value</span>
+        <span class="snap-val" id="snap-gold-val">—</span>
+      </div>
+      <div class="snap-row">
+        <span class="snap-label">🏅 Gold Profit</span>
+        <span class="snap-val" id="snap-gold-profit" style="color:var(--profit)">—</span>
+      </div>
+      <div class="snap-row">
+        <span class="snap-label">🥈 Silver Value</span>
+        <span class="snap-val" id="snap-silver-val">—</span>
+      </div>
+      <div class="snap-row">
+        <span class="snap-label">🥈 Silver Profit</span>
+        <span class="snap-val" id="snap-silver-profit" style="color:var(--profit)">—</span>
+      </div>
+      <hr class="snap-divider">
+      <div class="snap-total-row">
+        <span class="snap-total-label">Total Profit</span>
+        <span class="snap-total-val" id="snap-total-profit">—</span>
+      </div>
+    </div>
+
+    <div class="share-actions">
+      <button class="share-action-btn primary" onclick="downloadSnapshot()">⬇ Save Image</button>
+      <button class="share-action-btn" onclick="copyShareText()">📋 Copy Text</button>
+    </div>
+    <button class="share-close" onclick="closeShare()">Close</button>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════
 //  CONFIGURATION — change PIN here
 // ════════════════════════════════════════
-const CORRECT_PIN = '0906';
+const CORRECT_PIN = '1234';
 
 // Portfolio data (oz and cost in AUD)
 const GOLD_OZ   = 3.5274;
@@ -1105,14 +1521,14 @@ async function fetchPrices() {
       setTimeout(() => toast.classList.remove('show'), 8000);
     }
 
-    // Refresh every 5 min
-    setTimeout(fetchPrices, 5 * 60 * 1000);
+    // Refresh every 5 min — with countdown
+    startCountdown(5 * 60);
 
   } catch (err) {
     console.error('Price fetch failed:', err);
     document.getElementById('last-updated').textContent =
       '⚠ Price fetch failed — retrying in 60s';
-    setTimeout(fetchPrices, 60 * 1000);
+    startCountdown(60);
   }
 }
 
@@ -1120,6 +1536,42 @@ function fmtNum(n, decimals = 2) {
   return Math.abs(n).toLocaleString('en-AU', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
+  });
+}
+
+// ════════════════════════════════════════
+//  COUNTDOWN + MANUAL REFRESH
+// ════════════════════════════════════════
+let countdownTimer = null;
+
+function startCountdown(seconds) {
+  clearInterval(countdownTimer);
+  let remaining = seconds;
+
+  function tick() {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    const el = document.getElementById('countdown');
+    if (el) el.textContent = m + ':' + String(s).padStart(2, '0');
+    if (remaining <= 0) {
+      clearInterval(countdownTimer);
+      fetchPrices();
+    }
+    remaining--;
+  }
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+function manualRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  clearInterval(countdownTimer);
+  document.getElementById('countdown').textContent = '...';
+  fetchPrices().finally(() => {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
   });
 }
 
@@ -1171,7 +1623,227 @@ function closeModal(e) {
   }
 }
 
-// Keyboard support for PIN
+// ════════════════════════════════════════
+//  MARKET STATUS (COMEX — New York)
+// ════════════════════════════════════════
+// COMEX metals: Mon-Fri 6:00 PM Sun – 5:00 PM Fri ET (nearly 23hr/day)
+// Closed: 5:00 PM – 6:00 PM ET daily + all weekend
+// ET = UTC-5 (EST) or UTC-4 (EDT)
+
+function getETOffset() {
+  // Approximate: EDT Mar-Nov, EST Nov-Mar
+  const now = new Date();
+  const jan = new Date(now.getFullYear(), 0, 1);
+  const jul = new Date(now.getFullYear(), 6, 1);
+  const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+  const isDST = now.getTimezoneOffset() < stdOffset;
+  return isDST ? -4 : -5; // EDT or EST
+}
+
+function getETTime() {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const etOffset = getETOffset();
+  return new Date(utc + etOffset * 3600000);
+}
+
+function isMarketOpen() {
+  const et = getETTime();
+  const day  = et.getDay();   // 0=Sun,1=Mon..6=Sat
+  const hour = et.getHours();
+  const min  = et.getMinutes();
+  const timeNum = hour * 60 + min; // minutes since midnight ET
+
+  // Weekend: Saturday all day, Sunday before 6 PM
+  if (day === 6) return false; // all Saturday closed
+  if (day === 0 && timeNum < 18 * 60) return false; // Sunday before 6 PM
+
+  // Daily maintenance break: 5:00 PM – 6:00 PM ET
+  if (timeNum >= 17 * 60 && timeNum < 18 * 60) return false;
+
+  // Friday after 5 PM = closed for weekend
+  if (day === 5 && timeNum >= 17 * 60) return false;
+
+  return true;
+}
+
+function getNextOpenET() {
+  // Returns a Date object for when market next opens
+  const et = getETTime();
+  const day  = et.getDay();
+  const hour = et.getHours();
+  const min  = et.getMinutes();
+  const timeNum = hour * 60 + min;
+
+  const next = new Date(et);
+
+  if (day === 6) {
+    // Saturday — opens Sunday 6 PM ET
+    const daysUntilSun = 1;
+    next.setDate(next.getDate() + daysUntilSun);
+    next.setHours(18, 0, 0, 0);
+  } else if (day === 0 && timeNum < 18 * 60) {
+    // Sunday before 6 PM
+    next.setHours(18, 0, 0, 0);
+  } else if ((timeNum >= 17 * 60 && timeNum < 18 * 60)) {
+    // Daily break — opens at 6 PM same day
+    next.setHours(18, 0, 0, 0);
+  } else if (day === 5 && timeNum >= 17 * 60) {
+    // Friday after 5 PM — opens Sunday 6 PM
+    const daysUntilSun = 2;
+    next.setDate(next.getDate() + daysUntilSun);
+    next.setHours(18, 0, 0, 0);
+  }
+
+  // Convert back to local time
+  const etOffsetMs = getETOffset() * 3600000;
+  const utcMs = next.getTime() - etOffsetMs;
+  return new Date(utcMs - new Date().getTimezoneOffset() * 60000);
+}
+
+function getSessionLabel(isOpen) {
+  const et = getETTime();
+  const day  = et.getDay();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if (!isOpen) return 'COMEX Metals · New York';
+  return `COMEX · ${days[day]} session · New York`;
+}
+
+let marketTimer = null;
+
+function updateMarketStatus() {
+  const open = isMarketOpen();
+  const dot  = document.getElementById('market-dot');
+  const txt  = document.getElementById('market-status-text');
+  const sess = document.getElementById('market-session');
+  const right = document.getElementById('market-right');
+  const countdownEl = document.getElementById('market-countdown');
+
+  dot.className  = 'market-dot ' + (open ? 'open' : 'closed');
+  txt.className  = 'market-status-text ' + (open ? 'open' : 'closed');
+  txt.textContent = open ? '● Market Open' : '● Market Closed';
+  sess.textContent = getSessionLabel(open);
+
+  if (!open) {
+    right.style.display = 'block';
+    const nextOpen = getNextOpenET();
+    const diffMs   = nextOpen - new Date();
+    if (diffMs > 0) {
+      const totalSec = Math.floor(diffMs / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      countdownEl.textContent =
+        String(h).padStart(2,'0') + ':' +
+        String(m).padStart(2,'0') + ':' +
+        String(s).padStart(2,'0');
+    }
+  } else {
+    right.style.display = 'none';
+  }
+}
+
+// Start market status ticker
+updateMarketStatus();
+setInterval(updateMarketStatus, 1000);
+
+// ════════════════════════════════════════
+//  DARK / LIGHT THEME TOGGLE
+// ════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '🌑' : '🌙';
+  localStorage.setItem('vault-theme', isLight ? 'light' : 'dark');
+}
+
+// Restore saved theme
+(function() {
+  const saved = localStorage.getItem('vault-theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = '🌑';
+  }
+})();
+
+// ════════════════════════════════════════
+//  SHARE / EXPORT
+// ════════════════════════════════════════
+function openShare() {
+  // Populate snapshot card with live values
+  document.getElementById('snap-date').textContent =
+    new Date().toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' });
+  document.getElementById('snap-gold-val').textContent    = document.getElementById('gold-value').textContent;
+  document.getElementById('snap-gold-profit').textContent = document.getElementById('gold-profit').textContent;
+  document.getElementById('snap-silver-val').textContent    = document.getElementById('silver-value').textContent;
+  document.getElementById('snap-silver-profit').textContent = document.getElementById('silver-profit').textContent;
+  document.getElementById('snap-total-profit').textContent  = document.getElementById('total-profit').textContent;
+
+  // Colour profit fields
+  ['snap-gold-profit','snap-silver-profit','snap-total-profit'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.color = el.textContent.startsWith('-') ? '#e05252' : 'var(--profit)';
+  });
+
+  document.getElementById('share-overlay').classList.add('open');
+}
+
+function closeShare(e) {
+  if (!e || e.target === document.getElementById('share-overlay')) {
+    document.getElementById('share-overlay').classList.remove('open');
+  }
+}
+
+async function downloadSnapshot() {
+  const card = document.getElementById('snapshot-card');
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0C0C0E',
+      scale: 3,
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = 'vault-portfolio-' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(err) {
+    alert('Screenshot failed — try the Copy Text option instead.');
+    console.error(err);
+  }
+}
+
+function copyShareText() {
+  const date    = document.getElementById('snap-date').textContent;
+  const gVal    = document.getElementById('snap-gold-val').textContent;
+  const gProfit = document.getElementById('snap-gold-profit').textContent;
+  const sVal    = document.getElementById('snap-silver-val').textContent;
+  const sProfit = document.getElementById('snap-silver-profit').textContent;
+  const total   = document.getElementById('snap-total-profit').textContent;
+
+  const text =
+`⚜️ Vault — Precious Metals Portfolio
+Date: ${date}
+
+🏅 Gold
+  Value:  ${gVal}
+  Profit: ${gProfit}
+
+🥈 Silver
+  Value:  ${sVal}
+  Profit: ${sProfit}
+
+💰 Total Profit: ${total}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => alert('Copy failed — try long-pressing the text.'));
+}
+
+// ════════════════════════════════════════
+//  Keyboard support for PIN
 document.addEventListener('keydown', e => {
   if (document.getElementById('pin-screen').style.display !== 'none'
       && document.getElementById('pin-screen').style.display !== '') {
