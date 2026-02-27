@@ -878,7 +878,7 @@
 // ════════════════════════════════════════
 //  CONFIGURATION — change PIN here
 // ════════════════════════════════════════
-const CORRECT_PIN = '0906';
+const CORRECT_PIN = '1234';
 
 // Portfolio data (oz and cost in AUD)
 const GOLD_OZ   = 3.5274;
@@ -918,7 +918,6 @@ function checkPin() {
     setTimeout(() => {
       document.getElementById('pin-screen').style.display = 'none';
       document.getElementById('app').classList.add('visible');
-      fetchPrices();
     }, 300);
   } else {
     document.getElementById('pin-error').classList.add('visible');
@@ -934,6 +933,9 @@ function checkPin() {
 }
 
 document.getElementById('pin-screen').style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
+// Pre-fetch prices in background while user is on PIN screen
+fetchPrices();
 
 function lockApp() {
   pinEntry = '';
