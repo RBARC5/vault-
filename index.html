@@ -581,6 +581,61 @@
 
   .modal-close:hover { color: var(--text); }
 
+  /* Toast popup */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast-text {
+    font-size: 12px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  .toast-text span {
+    display: block;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+
+  .toast-btn {
+    background: var(--gold);
+    border: none;
+    border-radius: 8px;
+    color: var(--bg);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    padding: 8px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .toast-btn:hover { background: var(--gold-light); }
+
   /* Last updated */
   .last-updated {
     text-align: center;
@@ -861,6 +916,15 @@
   <div class="last-updated" id="last-updated">Fetching live prices...</div>
 </div>
 
+<!-- Toast notification -->
+<div class="toast" id="price-toast">
+  <div class="toast-text">
+    ✅ Live prices ready
+    <span>Tap to load latest data</span>
+  </div>
+  <button class="toast-btn" onclick="location.reload()">Refresh</button>
+</div>
+
 <!-- ── CHART MODAL ───────────────────────────────────────── -->
 <div class="modal-overlay" id="chart-modal" onclick="closeModal(event)">
   <div class="modal-sheet">
@@ -878,7 +942,7 @@
 // ════════════════════════════════════════
 //  CONFIGURATION — change PIN here
 // ════════════════════════════════════════
-const CORRECT_PIN = '0906';
+const CORRECT_PIN = '1234';
 
 // Portfolio data (oz and cost in AUD)
 const GOLD_OZ   = 3.5274;
@@ -1030,6 +1094,16 @@ async function fetchPrices() {
     document.getElementById('last-updated').textContent =
       'Updated ' + now.toLocaleTimeString('en-AU') +
       ' · 1 USD = ' + audRate.toFixed(4) + ' AUD · Prices from Yahoo Finance (futures)';
+
+    // Show toast if user is still on the PIN screen
+    const pinVisible = document.getElementById('pin-screen').style.display !== 'none'
+                    && document.getElementById('pin-screen').style.opacity !== '0';
+    if (pinVisible) {
+      const toast = document.getElementById('price-toast');
+      toast.classList.add('show');
+      // Auto-hide after 8 seconds
+      setTimeout(() => toast.classList.remove('show'), 8000);
+    }
 
     // Refresh every 5 min
     setTimeout(fetchPrices, 5 * 60 * 1000);
