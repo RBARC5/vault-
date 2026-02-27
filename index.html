@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precious Metals Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --gold-dim: #7a6028;
+    --silver: #B8C4CC;
+    --silver-light: #D8E4EC;
+    --silver-dim: #6a7a84;
+    --bg: #0C0C0E;
+    --surface: #14151A;
+    --surface2: #1C1D24;
+    --surface3: #24252E;
+    --text: #E8E4DC;
+    --text-dim: #7A7870;
+    --profit: #4CAF7A;
+    --border: rgba(255,255,255,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── PIN SCREEN ──────────────────────────────────────── */
+  #pin-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    gap: 40px;
+  }
+
+  #pin-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .pin-logo {
+    text-align: center;
+  }
+
+  .pin-logo .vault-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+    filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
+  }
+
+  .pin-logo h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 28px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+  }
+
+  .pin-logo p {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  .pin-display {
+    display: flex;
+    gap: 16px;
+  }
+
+  .pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold-dim);
+    background: transparent;
+    transition: all 0.2s ease;
+  }
+
+  .pin-dot.filled {
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(201,168,76,0.5);
+  }
+
+  .pin-dot.error {
+    background: #e05252;
+    border-color: #e05252;
+    animation: shake 0.4s ease;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 70px);
+    gap: 12px;
+  }
+
+  .pin-key {
+    height: 70px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pin-key:hover {
+    background: var(--surface2);
+    border-color: rgba(201,168,76,0.3);
+    color: var(--gold-light);
+  }
+
+  .pin-key:active {
+    transform: scale(0.93);
+    background: var(--surface3);
+  }
+
+  .pin-key.zero { grid-column: 2; }
+  .pin-key.del { grid-column: 3; font-size: 16px; color: var(--text-dim); }
+
+  .pin-error-msg {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #e05252;
+    text-transform: uppercase;
+    height: 16px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+
+  .pin-error-msg.visible { opacity: 1; }
+
+  /* ─── MAIN APP ────────────────────────────────────────── */
+  #app {
+    display: none;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  #app.visible { display: block; }
+
+  /* Header */
+  .app-header {
+    padding: 24px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .app-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--gold-light);
+    text-transform: uppercase;
+  }
+
+  .lock-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .lock-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  /* ─── PRICE CARDS ─────────────────────────────────────── */
+  .prices-section {
+    padding: 28px 24px 0;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .price-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .price-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .price-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .price-card.gold::before { background: linear-gradient(90deg, var(--gold-dim), var(--gold-light)); }
+  .price-card.silver::before { background: linear-gradient(90deg, var(--silver-dim), var(--silver-light)); }
+
+  .price-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+    background: var(--surface2);
+  }
+
+  .price-card .metal-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .price-card .metal-name {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .price-card.gold .metal-name { color: var(--gold-dim); }
+  .price-card.silver .metal-name { color: var(--silver-dim); }
+
+  .price-card .metal-price {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .price-card.gold .metal-price { color: var(--gold-light); }
+  .price-card.silver .metal-price { color: var(--silver-light); }
+
+  .price-card .metal-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .trend-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 400;
+  }
+
+  .trend-up { background: rgba(76,175,122,0.15); color: var(--profit); }
+  .trend-down { background: rgba(224,82,82,0.15); color: #e05252; }
+
+  .tap-hint {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    opacity: 0.6;
+  }
+
+  /* ─── PORTFOLIO ───────────────────────────────────────── */
+  .portfolio-section {
+    padding: 32px 24px 0;
+  }
+
+  .metal-portfolio {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .portfolio-header {
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .portfolio-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .portfolio-header-left .icon { font-size: 18px; }
+
+  .portfolio-header-left .title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 1px;
+  }
+
+  .portfolio-header-left.gold .title { color: var(--gold-light); }
+  .portfolio-header-left.silver .title { color: var(--silver-light); }
+
+  .portfolio-stats {
+    text-align: right;
+  }
+
+  .portfolio-stats .oz-total {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .portfolio-stats .oz-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  /* Purchase rows */
+  .purchases-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+
+  .purchases-list.expanded {
+    max-height: 800px;
+  }
+
+  .purchase-row {
+    padding: 13px 20px;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 11px;
+  }
+
+  .purchase-row:last-child { border-bottom: none; }
+
+  .purchase-date { color: var(--text-dim); }
+  .purchase-item { color: var(--text); line-height: 1.4; }
+  .purchase-cost { text-align: right; color: var(--text-dim); }
+  .purchase-oz { 
+    font-size: 9px; 
+    color: var(--text-dim); 
+    margin-top: 2px;
+  }
+
+  .expand-btn {
+    width: 100%;
+    padding: 12px;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .expand-btn:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+
+  /* Summary rows */
+  .portfolio-summary {
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .summary-item { }
+  .summary-item .s-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .summary-item .s-value {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .s-value.gold-color { color: var(--gold-light); }
+  .s-value.silver-color { color: var(--silver-light); }
+  .s-value.profit-color { color: var(--profit); }
+
+  /* ─── GRAND TOTAL ─────────────────────────────────────── */
+  .grand-total {
+    margin: 8px 24px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .grand-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+  }
+
+  .grand-total-row .gt-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .grand-total-row .gt-value {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .grand-total-row.divider {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 14px;
+  }
+
+  .grand-total-row.divider .gt-label {
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .grand-total-row.divider .gt-value {
+    font-size: 22px;
+    color: var(--profit);
+  }
+
+  /* Loading state */
+  .price-loading {
+    color: var(--text-dim);
+    font-size: 14px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ─── CHART MODAL ─────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 500;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-sheet {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    animation: slideUp 0.3s ease;
+    max-height: 90vh;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 4px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .modal-subtitle {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .chart-frame {
+    border-radius: 12px;
+    overflow: hidden;
+    height: 350px;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .chart-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .modal-close {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  /* Last updated */
+  .last-updated {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    padding: 24px;
+    opacity: 0.5;
+  }
+
+  /* Background grain */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── PIN SCREEN ───────────────────────────────────────── -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <span class="vault-icon">⚜️</span>
+    <h1>Vault</h1>
+    <p>Precious Metals Portfolio</p>
+  </div>
+
+  <div class="pin-display">
+    <div class="pin-dot" id="dot-0"></div>
+    <div class="pin-dot" id="dot-1"></div>
+    <div class="pin-dot" id="dot-2"></div>
+    <div class="pin-dot" id="dot-3"></div>
+  </div>
+
+  <div class="pin-error-msg" id="pin-error">Incorrect PIN</div>
+
+  <div class="pin-keypad">
+    <button class="pin-key" onclick="addDigit('1')">1</button>
+    <button class="pin-key" onclick="addDigit('2')">2</button>
+    <button class="pin-key" onclick="addDigit('3')">3</button>
+    <button class="pin-key" onclick="addDigit('4')">4</button>
+    <button class="pin-key" onclick="addDigit('5')">5</button>
+    <button class="pin-key" onclick="addDigit('6')">6</button>
+    <button class="pin-key" onclick="addDigit('7')">7</button>
+    <button class="pin-key" onclick="addDigit('8')">8</button>
+    <button class="pin-key" onclick="addDigit('9')">9</button>
+    <button class="pin-key zero" onclick="addDigit('0')">0</button>
+    <button class="pin-key del" onclick="delDigit()">⌫</button>
+  </div>
+</div>
+
+<!-- ── MAIN APP ──────────────────────────────────────────── -->
+<div id="app">
+
+  <div class="app-header">
+    <div class="app-title">⚜️ Vault</div>
+    <button class="lock-btn" onclick="lockApp()">Lock</button>
+  </div>
+
+  <!-- Price Cards -->
+  <div class="prices-section">
+    <div class="section-label">Live Spot Price — AUD per Troy Oz</div>
+    <div class="price-cards">
+
+      <div class="price-card gold" onclick="openChart('gold')">
+        <span class="metal-icon">🏅</span>
+        <div class="metal-name">Gold</div>
+        <div class="metal-price" id="gold-price"><span class="price-loading">---</span></div>
+        <div class="metal-sub">per troy oz</div>
+        <span class="trend-badge trend-up" id="gold-trend">▲ ---</span>
+        <div class="tap-hint">tap for chart →</div>
+      </div>
+
+      <div class="price-card silver" onclick="openChart('silver')">
+        <span class="metal-icon">🥈</span>
+        <div class="metal-name">Silver</div>
+        <div class="metal-price" id="silver-price"><span class="price-loading">---</span></div>
+        <div class="metal-sub">per troy oz</div>
+        <span class="trend-badge trend-up" id="silver-trend">▲ ---</span>
+        <div class="tap-hint">tap for chart →</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Gold Portfolio -->
+  <div class="portfolio-section">
+    <div class="section-label">Portfolio</div>
+
+    <div class="metal-portfolio">
+      <div class="portfolio-header">
+        <div class="portfolio-header-left gold">
+          <span class="icon">🏅</span>
+          <span class="title">Gold</span>
+        </div>
+        <div class="portfolio-stats">
+          <div class="oz-total" style="color:var(--gold-light)">3.5274 oz</div>
+          <div class="oz-label">Total Holdings</div>
+        </div>
+      </div>
+
+      <div class="purchases-list" id="gold-purchases">
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">29/03/2022</div>
+          </div>
+          <div>
+            <div class="purchase-item">1 × 100G ABC Cast Gold</div>
+            <div class="purchase-oz">3.5274 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$8,427</div>
+        </div>
+      </div>
+
+      <button class="expand-btn" onclick="togglePurchases('gold')">▾ Show Purchases</button>
+
+      <div class="portfolio-summary">
+        <div class="summary-item">
+          <div class="s-label">Total Paid</div>
+          <div class="s-value gold-color">$8,427</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Avg Cost / Oz</div>
+          <div class="s-value">$2,389</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Current Value</div>
+          <div class="s-value gold-color" id="gold-value">---</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Profit</div>
+          <div class="s-value profit-color" id="gold-profit">---</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Silver Portfolio -->
+    <div class="metal-portfolio">
+      <div class="portfolio-header">
+        <div class="portfolio-header-left silver">
+          <span class="icon">🥈</span>
+          <span class="title">Silver</span>
+        </div>
+        <div class="portfolio-stats">
+          <div class="oz-total" style="color:var(--silver-light)">1,378.71 oz</div>
+          <div class="oz-label">Total Holdings</div>
+        </div>
+      </div>
+
+      <div class="purchases-list" id="silver-purchases">
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">29/07/2020</div>
+          </div>
+          <div>
+            <div class="purchase-item">7 × 1kg ABC Cast Silver</div>
+            <div class="purchase-oz">246.918 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$8,463<br><span style="font-size:9px;color:var(--text-dim)">+$9 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">13/04/2021</div>
+          </div>
+          <div>
+            <div class="purchase-item">1 × 5kg ABC Cast Silver</div>
+            <div class="purchase-oz">176.37 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$5,672<br><span style="font-size:9px;color:var(--text-dim)">+$9 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">21/12/2021</div>
+          </div>
+          <div>
+            <div class="purchase-item">1 × 5kg ABC Cast Silver</div>
+            <div class="purchase-oz">176.37 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$5,419<br><span style="font-size:9px;color:var(--text-dim)">+$9 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">21/12/2021</div>
+          </div>
+          <div>
+            <div class="purchase-item">2 × 1oz Silver Coin</div>
+            <div class="purchase-oz">2.00 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$80</div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">29/03/2022</div>
+          </div>
+          <div>
+            <div class="purchase-item">10 × 1kg ABC Cast Silver</div>
+            <div class="purchase-oz">352.74 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$11,800<br><span style="font-size:9px;color:var(--text-dim)">+$9 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">18/07/2022</div>
+          </div>
+          <div>
+            <div class="purchase-item">2 × 5kg ABC Cast Silver</div>
+            <div class="purchase-oz">352.77 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$9,450<br><span style="font-size:9px;color:var(--text-dim)">+$5 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">11/03/2023</div>
+          </div>
+          <div>
+            <div class="purchase-item">2 × 1kg ABC Cast Silver</div>
+            <div class="purchase-oz">70.54 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$2,446<br><span style="font-size:9px;color:var(--text-dim)">+$22 ship</span></div>
+        </div>
+        <div class="purchase-row">
+          <div>
+            <div class="purchase-date">11/03/2023</div>
+          </div>
+          <div>
+            <div class="purchase-item">1 × 1oz Kookaburra Silver</div>
+            <div class="purchase-oz">1.00 oz · Brisbane Gold Co.</div>
+          </div>
+          <div class="purchase-cost">$47</div>
+        </div>
+      </div>
+
+      <button class="expand-btn" onclick="togglePurchases('silver')">▾ Show Purchases</button>
+
+      <div class="portfolio-summary">
+        <div class="summary-item">
+          <div class="s-label">Total Paid</div>
+          <div class="s-value silver-color">$43,377</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Avg Cost / Oz</div>
+          <div class="s-value">$31.46</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Current Value</div>
+          <div class="s-value silver-color" id="silver-value">---</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Profit</div>
+          <div class="s-value profit-color" id="silver-profit">---</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grand Total -->
+  <div class="grand-total">
+    <div class="grand-total-row">
+      <span class="gt-label">Total Invested</span>
+      <span class="gt-value">$51,804</span>
+    </div>
+    <div class="grand-total-row">
+      <span class="gt-label">Portfolio Value</span>
+      <span class="gt-value" id="total-value">---</span>
+    </div>
+    <div class="grand-total-row divider">
+      <span class="gt-label">💰 Total Profit</span>
+      <span class="gt-value" id="total-profit">---</span>
+    </div>
+  </div>
+
+  <div class="last-updated" id="last-updated">Fetching live prices...</div>
+</div>
+
+<!-- ── CHART MODAL ───────────────────────────────────────── -->
+<div class="modal-overlay" id="chart-modal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Gold</div>
+    <div class="modal-subtitle" id="modal-subtitle">XAU/USD — 30 Day Chart</div>
+    <div class="chart-frame">
+      <iframe id="tv-chart" src=""></iframe>
+    </div>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIGURATION — change PIN here
+// ════════════════════════════════════════
+const CORRECT_PIN = '1234';
+
+// Portfolio data (oz and cost in AUD)
+const GOLD_OZ   = 3.5274;
+const GOLD_COST = 8427;
+const SILVER_OZ   = 1378.708;
+const SILVER_COST = 43377;
+
+// ════════════════════════════════════════
+//  PIN LOGIC
+// ════════════════════════════════════════
+let pinEntry = '';
+
+function addDigit(d) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += d;
+  updateDots();
+  if (pinEntry.length === 4) checkPin();
+}
+
+function delDigit() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.classList.toggle('filled', i < pinEntry.length);
+    dot.classList.remove('error');
+  }
+}
+
+function checkPin() {
+  if (pinEntry === CORRECT_PIN) {
+    document.getElementById('pin-screen').style.opacity = '0';
+    document.getElementById('pin-screen').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('app').classList.add('visible');
+      fetchPrices();
+    }, 300);
+  } else {
+    document.getElementById('pin-error').classList.add('visible');
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('dot-' + i).classList.add('error');
+    }
+    setTimeout(() => {
+      pinEntry = '';
+      updateDots();
+      document.getElementById('pin-error').classList.remove('visible');
+    }, 1000);
+  }
+}
+
+document.getElementById('pin-screen').style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
+function lockApp() {
+  pinEntry = '';
+  updateDots();
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('pin-screen').style.opacity = '1';
+  document.getElementById('pin-screen').style.transform = 'scale(1)';
+}
+
+// ════════════════════════════════════════
+//  LIVE PRICE FETCHING
+// ════════════════════════════════════════
+async function fetchPrices() {
+  document.getElementById('last-updated').textContent = 'Fetching live prices...';
+  try {
+    // --- Yahoo Finance: gold futures (GC=F) and silver futures (SI=F) ---
+    // Wrapped in allorigins CORS proxy since Yahoo blocks direct browser requests
+    const proxy = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+    const [goldRes, silverRes, fxRes] = await Promise.all([
+      fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=5d')),
+      fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/SI%3DF?interval=1d&range=5d')),
+      fetch('https://open.er-api.com/v6/latest/USD')          // CORS-open, free, no key
+    ]);
+
+    if (!goldRes.ok || !silverRes.ok || !fxRes.ok) throw new Error('HTTP error');
+
+    const goldRaw   = await goldRes.json();
+    const silverRaw = await silverRes.json();
+    const fx        = await fxRes.json();
+
+    // allorigins wraps response in { contents: "..." }
+    const goldData   = JSON.parse(goldRaw.contents);
+    const silverData = JSON.parse(silverRaw.contents);
+
+    const audRate = (fx.result === 'success' ? fx.rates.AUD : null) || 1.57;
+
+    // Pull last close price and previous close to calculate % change
+    function extractPrice(yahooData) {
+      const meta   = yahooData.chart.result[0].meta;
+      const closes = yahooData.chart.result[0].indicators.quote[0].close.filter(Boolean);
+      const price  = meta.regularMarketPrice || closes[closes.length - 1];
+      const prev   = closes[closes.length - 2] || price;
+      const change = ((price - prev) / prev) * 100;
+      return { price, change };
+    }
+
+    const gold   = extractPrice(goldData);
+    const silver = extractPrice(silverData);
+
+    const goldAUD   = gold.price   * audRate;
+    const silverAUD = silver.price * audRate;
+
+    // Update price cards
+    document.getElementById('gold-price').textContent   = '$' + fmtNum(goldAUD, 2);
+    document.getElementById('silver-price').textContent = '$' + fmtNum(silverAUD, 2);
+
+    // Trend badges with % change
+    function trendBadge(id, change) {
+      const el  = document.getElementById(id);
+      const up  = change >= 0;
+      el.textContent = (up ? '▲ +' : '▼ ') + change.toFixed(2) + '%';
+      el.className   = 'trend-badge ' + (up ? 'trend-up' : 'trend-down');
+    }
+    trendBadge('gold-trend',   gold.change);
+    trendBadge('silver-trend', silver.change);
+
+    // Portfolio calcs
+    const goldValue    = GOLD_OZ   * goldAUD;
+    const silverValue  = SILVER_OZ * silverAUD;
+    const goldProfit   = goldValue   - GOLD_COST;
+    const silverProfit = silverValue - SILVER_COST;
+    const totalValue   = goldValue  + silverValue;
+    const totalProfit  = goldProfit + silverProfit;
+
+    document.getElementById('gold-value').textContent    = '$' + fmtNum(goldValue, 0);
+    document.getElementById('silver-value').textContent  = '$' + fmtNum(silverValue, 0);
+    document.getElementById('gold-profit').textContent   = (goldProfit   >= 0 ? '+$' : '-$') + fmtNum(Math.abs(goldProfit),   0);
+    document.getElementById('silver-profit').textContent = (silverProfit >= 0 ? '+$' : '-$') + fmtNum(Math.abs(silverProfit), 0);
+    document.getElementById('total-value').textContent   = '$' + fmtNum(totalValue, 0);
+    document.getElementById('total-profit').textContent  = (totalProfit  >= 0 ? '+$' : '-$') + fmtNum(Math.abs(totalProfit),  0);
+
+    // Colour profits
+    ['gold-profit','silver-profit','total-profit'].forEach(id => {
+      const el  = document.getElementById(id);
+      const neg = el.textContent.startsWith('-');
+      el.style.color = neg ? '#e05252' : 'var(--profit)';
+    });
+
+    const now = new Date();
+    document.getElementById('last-updated').textContent =
+      'Updated ' + now.toLocaleTimeString('en-AU') +
+      ' · 1 USD = ' + audRate.toFixed(4) + ' AUD · Prices from Yahoo Finance (futures)';
+
+    // Refresh every 5 min
+    setTimeout(fetchPrices, 5 * 60 * 1000);
+
+  } catch (err) {
+    console.error('Price fetch failed:', err);
+    document.getElementById('last-updated').textContent =
+      '⚠ Price fetch failed — retrying in 60s';
+    setTimeout(fetchPrices, 60 * 1000);
+  }
+}
+
+function fmtNum(n, decimals = 2) {
+  return Math.abs(n).toLocaleString('en-AU', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+// ════════════════════════════════════════
+//  EXPAND / COLLAPSE PURCHASES
+// ════════════════════════════════════════
+const expanded = { gold: false, silver: false };
+
+function togglePurchases(metal) {
+  expanded[metal] = !expanded[metal];
+  const list = document.getElementById(metal + '-purchases');
+  const btn  = list.nextElementSibling;
+  list.classList.toggle('expanded', expanded[metal]);
+  btn.textContent = expanded[metal] ? '▴ Hide Purchases' : '▾ Show Purchases';
+}
+
+// ════════════════════════════════════════
+//  CHART MODAL — TradingView embed
+// ════════════════════════════════════════
+const chartConfig = {
+  gold: {
+    title: 'Gold',
+    subtitle: 'XAU/USD — Live Chart',
+    symbol: 'XAUUSD'
+  },
+  silver: {
+    title: 'Silver',
+    subtitle: 'XAG/USD — Live Chart',
+    symbol: 'XAGUSD'
+  }
+};
+
+function openChart(metal) {
+  const cfg = chartConfig[metal];
+  document.getElementById('modal-title').textContent   = cfg.title;
+  document.getElementById('modal-subtitle').textContent = cfg.subtitle;
+
+  // TradingView mini chart widget (free, no auth)
+  const tvUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tv&symbol=${cfg.symbol}&interval=D&theme=dark&style=1&locale=en&toolbar_bg=%23141519&enable_publishing=false&allow_symbol_change=false&save_image=false&hide_top_toolbar=false&studies=RSI%40tv-basicstudies&withdateranges=1`;
+
+  document.getElementById('tv-chart').src = tvUrl;
+  document.getElementById('chart-modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('chart-modal') || e.type === 'click') {
+    document.getElementById('chart-modal').classList.remove('open');
+    document.getElementById('tv-chart').src = '';
+  }
+}
+
+// Keyboard support for PIN
+document.addEventListener('keydown', e => {
+  if (document.getElementById('pin-screen').style.display !== 'none'
+      && document.getElementById('pin-screen').style.display !== '') {
+    if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+    if (e.key === 'Backspace') delDigit();
+  }
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>
