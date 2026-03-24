@@ -1526,43 +1526,34 @@ function lockApp() {
 //  LIVE PRICE FETCHING
 // ════════════════════════════════════════
 async function fetchPrices() {
+  // ─── GoldAPI.io — free, CORS-enabled, no proxy needed ───────────────────
+  // Sign up free at https://www.goldapi.io (Google login, no card)
+  // 500 req/month free. Paste your key below.
+  const GOLDAPI_KEY = 'goldapi-jirw19mn59dm1f-io';
+
   try {
-    const proxy = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const headers = { 'x-access-token': GOLDAPI_KEY, 'Content-Type': 'application/json' };
 
     const [goldRes, silverRes, fxRes] = await Promise.all([
-      fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=5d')),
-      fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/SI%3DF?interval=1d&range=5d')),
+      fetch('https://www.goldapi.io/api/XAU/USD', { headers }),
+      fetch('https://www.goldapi.io/api/XAG/USD', { headers }),
       fetch('https://open.er-api.com/v6/latest/USD')
     ]);
 
     if (!goldRes.ok || !silverRes.ok || !fxRes.ok) throw new Error('HTTP error');
 
-    const goldRaw   = await goldRes.json();
-    const silverRaw = await silverRes.json();
-    const fx        = await fxRes.json();
-
-    const goldData   = JSON.parse(goldRaw.contents);
-    const silverData = JSON.parse(silverRaw.contents);
+    const goldData   = await goldRes.json();
+    const silverData = await silverRes.json();
+    const fx         = await fxRes.json();
 
     const audRate = (fx.result === 'success' ? fx.rates.AUD : null) || 1.57;
 
-    function extractPrice(yahooData) {
-      const meta   = yahooData.chart.result[0].meta;
-      const closes = yahooData.chart.result[0].indicators.quote[0].close.filter(Boolean);
-      const price  = meta.regularMarketPrice || closes[closes.length - 1];
-      const prev   = closes[closes.length - 2] || price;
-      const change = ((price - prev) / prev) * 100;
-      return { price, change };
-    }
-
-    const gold   = extractPrice(goldData);
-    const silver = extractPrice(silverData);
-
+    // GoldAPI returns price (USD/oz) and chp (% change from prev close)
     const freshData = {
-      goldAUD:      gold.price   * audRate,
-      silverAUD:    silver.price * audRate,
-      goldChange:   gold.change,
-      silverChange: silver.change,
+      goldAUD:      goldData.price   * audRate,
+      silverAUD:    silverData.price * audRate,
+      goldChange:   goldData.chp   || 0,
+      silverChange: silverData.chp || 0,
       audRate,
       ts: Date.now()
     };
