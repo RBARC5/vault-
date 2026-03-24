@@ -1414,8 +1414,104 @@ function checkPin() {
 
 document.getElementById('pin-screen').style.transition = 'opacity 0.3s ease, transform 0.3s ease';
 
-// Pre-fetch prices in background while user is on PIN screen
-fetchPrices();
+// ════════════════════════════════════════
+//  CACHE HELPERS
+// ════════════════════════════════════════
+const CACHE_KEY = 'vault-price-cache';
+
+function saveCache(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, ts: Date.now() }));
+  } catch(e) {}
+}
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function formatAge(ts) {
+  const diffMs  = Date.now() - ts;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1)  return 'just now';
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr  < 24) return diffHr + 'h ago';
+  return Math.floor(diffHr / 24) + 'd ago';
+}
+
+// Render prices from a data object (cache or fresh fetch)
+function renderPrices(data, isStale) {
+  const { goldAUD, silverAUD, audRate, goldChange, silverChange, ts } = data;
+
+  document.getElementById('gold-price').textContent   = '$' + fmtNum(goldAUD, 2);
+  document.getElementById('silver-price').textContent = '$' + fmtNum(silverAUD, 2);
+
+  function trendBadge(id, change) {
+    const el = document.getElementById(id);
+    const up = change >= 0;
+    el.textContent = (up ? '▲ +' : '▼ ') + change.toFixed(2) + '%';
+    el.className   = 'trend-badge ' + (up ? 'trend-up' : 'trend-down');
+  }
+  trendBadge('gold-trend',   goldChange);
+  trendBadge('silver-trend', silverChange);
+
+  const goldValue    = GOLD_OZ   * goldAUD;
+  const silverValue  = SILVER_OZ * silverAUD;
+  const goldProfit   = goldValue   - GOLD_COST;
+  const silverProfit = silverValue - SILVER_COST;
+  const totalValue   = goldValue  + silverValue;
+  const totalProfit  = goldProfit + silverProfit;
+
+  document.getElementById('gold-value').textContent    = '$' + fmtNum(goldValue, 0);
+  document.getElementById('silver-value').textContent  = '$' + fmtNum(silverValue, 0);
+  document.getElementById('gold-profit').textContent   = (goldProfit   >= 0 ? '+$' : '-$') + fmtNum(Math.abs(goldProfit),   0);
+  document.getElementById('silver-profit').textContent = (silverProfit >= 0 ? '+$' : '-$') + fmtNum(Math.abs(silverProfit), 0);
+  document.getElementById('total-value').textContent   = '$' + fmtNum(totalValue, 0);
+  document.getElementById('total-profit').textContent  = (totalProfit  >= 0 ? '+$' : '-$') + fmtNum(Math.abs(totalProfit),  0);
+
+  ['gold-profit','silver-profit','total-profit'].forEach(id => {
+    const el  = document.getElementById(id);
+    const neg = el.textContent.startsWith('-');
+    el.style.color = neg ? '#e05252' : 'var(--profit)';
+  });
+
+  if (isStale) {
+    document.getElementById('last-updated').textContent =
+      '⏳ Updating… (last data: ' + formatAge(ts) + ' · 1 USD = ' + audRate.toFixed(4) + ' AUD)';
+  } else {
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date(ts).toLocaleTimeString('en-AU') +
+      ' · 1 USD = ' + audRate.toFixed(4) + ' AUD · Prices from Yahoo Finance (futures)';
+  }
+}
+
+// Startup: show cache instantly, always fetch fresh in background
+function fmtNum(n, decimals = 2) {
+  return Math.abs(n).toLocaleString('en-AU', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+const CACHE_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+(function init() {
+  const cached = loadCache();
+  if (cached) {
+    const isStale = (Date.now() - cached.ts) > CACHE_MAX_AGE_MS;
+    renderPrices(cached, isStale);
+    if (isStale) {
+      fetchPrices();  // cache too old — fetch fresh in background
+    }
+    // else: cache is fresh, skip fetch entirely
+  } else {
+    document.getElementById('last-updated').textContent = 'Fetching live prices…';
+    fetchPrices();  // no cache at all — must fetch
+  }
+})();
 
 function lockApp() {
   pinEntry = '';
@@ -1430,16 +1526,13 @@ function lockApp() {
 //  LIVE PRICE FETCHING
 // ════════════════════════════════════════
 async function fetchPrices() {
-  document.getElementById('last-updated').textContent = 'Fetching live prices...';
   try {
-    // --- Yahoo Finance: gold futures (GC=F) and silver futures (SI=F) ---
-    // Wrapped in allorigins CORS proxy since Yahoo blocks direct browser requests
     const proxy = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
     const [goldRes, silverRes, fxRes] = await Promise.all([
       fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=5d')),
       fetch(proxy('https://query1.finance.yahoo.com/v8/finance/chart/SI%3DF?interval=1d&range=5d')),
-      fetch('https://open.er-api.com/v6/latest/USD')          // CORS-open, free, no key
+      fetch('https://open.er-api.com/v6/latest/USD')
     ]);
 
     if (!goldRes.ok || !silverRes.ok || !fxRes.ok) throw new Error('HTTP error');
@@ -1448,13 +1541,11 @@ async function fetchPrices() {
     const silverRaw = await silverRes.json();
     const fx        = await fxRes.json();
 
-    // allorigins wraps response in { contents: "..." }
     const goldData   = JSON.parse(goldRaw.contents);
     const silverData = JSON.parse(silverRaw.contents);
 
     const audRate = (fx.result === 'success' ? fx.rates.AUD : null) || 1.57;
 
-    // Pull last close price and previous close to calculate % change
     function extractPrice(yahooData) {
       const meta   = yahooData.chart.result[0].meta;
       const closes = yahooData.chart.result[0].indicators.quote[0].close.filter(Boolean);
@@ -1467,49 +1558,17 @@ async function fetchPrices() {
     const gold   = extractPrice(goldData);
     const silver = extractPrice(silverData);
 
-    const goldAUD   = gold.price   * audRate;
-    const silverAUD = silver.price * audRate;
+    const freshData = {
+      goldAUD:      gold.price   * audRate,
+      silverAUD:    silver.price * audRate,
+      goldChange:   gold.change,
+      silverChange: silver.change,
+      audRate,
+      ts: Date.now()
+    };
 
-    // Update price cards
-    document.getElementById('gold-price').textContent   = '$' + fmtNum(goldAUD, 2);
-    document.getElementById('silver-price').textContent = '$' + fmtNum(silverAUD, 2);
-
-    // Trend badges with % change
-    function trendBadge(id, change) {
-      const el  = document.getElementById(id);
-      const up  = change >= 0;
-      el.textContent = (up ? '▲ +' : '▼ ') + change.toFixed(2) + '%';
-      el.className   = 'trend-badge ' + (up ? 'trend-up' : 'trend-down');
-    }
-    trendBadge('gold-trend',   gold.change);
-    trendBadge('silver-trend', silver.change);
-
-    // Portfolio calcs
-    const goldValue    = GOLD_OZ   * goldAUD;
-    const silverValue  = SILVER_OZ * silverAUD;
-    const goldProfit   = goldValue   - GOLD_COST;
-    const silverProfit = silverValue - SILVER_COST;
-    const totalValue   = goldValue  + silverValue;
-    const totalProfit  = goldProfit + silverProfit;
-
-    document.getElementById('gold-value').textContent    = '$' + fmtNum(goldValue, 0);
-    document.getElementById('silver-value').textContent  = '$' + fmtNum(silverValue, 0);
-    document.getElementById('gold-profit').textContent   = (goldProfit   >= 0 ? '+$' : '-$') + fmtNum(Math.abs(goldProfit),   0);
-    document.getElementById('silver-profit').textContent = (silverProfit >= 0 ? '+$' : '-$') + fmtNum(Math.abs(silverProfit), 0);
-    document.getElementById('total-value').textContent   = '$' + fmtNum(totalValue, 0);
-    document.getElementById('total-profit').textContent  = (totalProfit  >= 0 ? '+$' : '-$') + fmtNum(Math.abs(totalProfit),  0);
-
-    // Colour profits
-    ['gold-profit','silver-profit','total-profit'].forEach(id => {
-      const el  = document.getElementById(id);
-      const neg = el.textContent.startsWith('-');
-      el.style.color = neg ? '#e05252' : 'var(--profit)';
-    });
-
-    const now = new Date();
-    document.getElementById('last-updated').textContent =
-      'Updated ' + now.toLocaleTimeString('en-AU') +
-      ' · 1 USD = ' + audRate.toFixed(4) + ' AUD · Prices from Yahoo Finance (futures)';
+    saveCache(freshData);
+    renderPrices(freshData, false);
 
     // Show toast if user is still on the PIN screen
     const pinVisible = document.getElementById('pin-screen').style.display !== 'none'
@@ -1517,27 +1576,25 @@ async function fetchPrices() {
     if (pinVisible) {
       const toast = document.getElementById('price-toast');
       toast.classList.add('show');
-      // Auto-hide after 8 seconds
       setTimeout(() => toast.classList.remove('show'), 8000);
     }
 
-    // Refresh every 5 min — with countdown
     startCountdown(5 * 60);
 
   } catch (err) {
     console.error('Price fetch failed:', err);
-    document.getElementById('last-updated').textContent =
-      '⚠ Price fetch failed — retrying in 60s';
+    const cached = loadCache();
+    if (cached) {
+      document.getElementById('last-updated').textContent =
+        '\u26a0 Update failed \u00b7 Showing data from ' + formatAge(cached.ts) +
+        ' \u00b7 1 USD = ' + cached.audRate.toFixed(4) + ' AUD';
+    } else {
+      document.getElementById('last-updated').textContent = '\u26a0 Price fetch failed \u2014 retrying in 60s';
+    }
     startCountdown(60);
   }
 }
 
-function fmtNum(n, decimals = 2) {
-  return Math.abs(n).toLocaleString('en-AU', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  });
-}
 
 // ════════════════════════════════════════
 //  COUNTDOWN + MANUAL REFRESH
